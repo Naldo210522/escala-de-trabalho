@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Escala de Trabalho</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
+  <style>
+    body {
+      background-color: #fff9c4;
+    }
+    header {
+      background-color: #2e7d32;
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px 12px 0 0;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    main.container {
+      background-color: #fff;
+      max-width: 600px;
+      margin: auto;
+      padding: 2rem;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    input[type="text"], input[type="file"] {
+      background-color: white;
+      color: #000;
+    }
+    .calendar-label {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    .worker-card {
+      background: #f1f8e9;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      border-left: 6px solid #2e7d32;
+    }
+    .botao-duplo {
+      display: flex;
+      gap: 1rem;
+    }
+    .botao-duplo button {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <header>ESCALA DE TRABALHO</header>
+  <main class="container">
+    <form id="form">
+      <label>Nome do trabalhador:
+        <input type="text" id="nome" required>
+      </label>
+      <label>Matrícula:
+        <input type="text" id="matricula" required>
+      </label>
+      <label>Foto:
+        <input type="file" id="foto" accept="image/*">
+      </label>
+
+      <label class="calendar-label">Trabalhando:</label>
+      <input type="text" id="diasTrabalho" required placeholder="Clique para escolher os dias de trabalho">
+
+      <label class="calendar-label">Folgas:</label>
+      <input type="text" id="diasFolga" required placeholder="Clique para escolher os dias de folga">
+
+      <button type="submit">Salvar</button>
+    </form>
+
+    <h3>Trabalhadores</h3>
+    <div id="lista"></div>
+
+    <div class="botao-duplo">
+      <button onclick="compartilharWhatsApp()" style="background-color:#2e7d32;color:white">WhatsApp</button>
+      <button onclick="gerarPDF()" style="background-color:#fdd835;color:black">PDF</button>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      new Litepicker({
+        element: document.getElementById('diasTrabalho'),
+        singleMode: false,
+        format: 'DD/MM/YYYY',
+        lang: 'pt-BR',
+        allowRepick: true,
+        numberOfMonths: 2,
+        numberOfColumns: 2
+      });
+      new Litepicker({
+        element: document.getElementById('diasFolga'),
+        singleMode: false,
+        format: 'DD/MM/YYYY',
+        lang: 'pt-BR',
+        allowRepick: true,
+        numberOfMonths: 2,
+        numberOfColumns: 2
+      });
+    });
+
+    let trabalhadores = [];
+
+    document.getElementById('form').addEventListener('submit', e => {
+      e.preventDefault();
+
+      const nome = document.getElementById('nome').value;
+      const matricula = document.getElementById('matricula').value;
+      const diasTrabalho = document.getElementById('diasTrabalho').value;
+      const diasFolga = document.getElementById('diasFolga').value;
+      const fotoInput = document.getElementById('foto');
+      const foto = fotoInput.files[0] ? URL.createObjectURL(fotoInput.files[0]) : '';
+
+      const trabalhador = { nome, matricula, diasTrabalho, diasFolga, foto };
+      trabalhadores.push(trabalhador);
+      atualizarLista();
+      e.target.reset();
+    });
+
+    function atualizarLista() {
+      const lista = document.getElementById('lista');
+      lista.innerHTML = '';
+      trabalhadores.forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'worker-card';
+        div.innerHTML = `
+          <p><strong>${t.nome}</strong> (${t.matricula})</p>
+          <p>📅 Trabalha: ${t.diasTrabalho}</p>
+          <p>🛏️ Folgas: ${t.diasFolga}</p>
+          ${t.foto ? `<img src="${t.foto}" alt="Foto" width="80">` : ''}
+        `;
+        lista.appendChild(div);
+      });
+    }
+
+    function compartilharWhatsApp() {
+      let texto = '📋 ESCALA DE TRABALHO:\\n\\n';
+      trabalhadores.forEach(t => {
+        texto += `${t.nome} (${t.matricula})\\nTrabalha: ${t.diasTrabalho}\\nFolga: ${t.diasFolga}\\n\\n`;
+      });
+      const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+      window.open(url, '_blank');
+    }
+
+    async function gerarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text('ESCALA DE TRABALHO', 10, 10);
+      let y = 20;
+      trabalhadores.forEach(t => {
+        doc.text(`${t.nome} (${t.matricula})`, 10, y);
+        doc.text(`Trabalha: ${t.diasTrabalho}`, 10, y + 6);
+        doc.text(`Folga: ${t.diasFolga}`, 10, y + 12);
+        y += 24;
+      });
+      doc.save('escala-de-trabalho.pdf');
+    }
+  </script>
+</body>
+</html>
